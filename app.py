@@ -100,7 +100,7 @@ def load_test_data():
     try:
         X_test = pd.read_csv('./data/processed/X_test.csv')
         X_test_scaled = pd.read_csv('./data/processed/X_test_scaled.csv')
-        y_test = pd.read_csv('./data/processed/y_test.csv').squeeze()
+        y_test = pd.read_csv('./data/processed/y_test.csv').squeeze().astype(int).values
         return X_test, X_test_scaled, y_test
     except Exception as e:
         st.error(f"Error loading test data: {e}")
@@ -153,24 +153,32 @@ def create_model_comparison(models, X_test, X_test_scaled, y_test, scaler):
     """Create comprehensive model comparison"""
     results = {}
     
+    # Convert to numpy arrays if needed
+    X_test_np = X_test.values if hasattr(X_test, 'values') else X_test
+    X_test_scaled_np = X_test_scaled.values if hasattr(X_test_scaled, 'values') else X_test_scaled
+    y_test_np = y_test.values if hasattr(y_test, 'values') else y_test
+    y_test_np = y_test_np.astype(int).flatten()
+    
     for model_name, model in models.items():
         if model_name == 'SVM':
-            y_pred = model.predict(X_test_scaled)
+            y_pred = model.predict(X_test_scaled_np)
             if hasattr(model, 'predict_proba'):
-                y_proba = model.predict_proba(X_test_scaled)[:, 1]
+                y_proba = model.predict_proba(X_test_scaled_np)[:, 1]
             else:
-                y_proba = model.decision_function(X_test_scaled)
+                y_proba = model.decision_function(X_test_scaled_np)
         else:
-            y_pred = model.predict(X_test)
-            y_proba = model.predict_proba(X_test)[:, 1] if hasattr(model, 'predict_proba') else None
+            y_pred = model.predict(X_test_np)
+            y_proba = model.predict_proba(X_test_np)[:, 1] if hasattr(model, 'predict_proba') else None
+        
+        y_pred = y_pred.astype(int).flatten()
         
         results[model_name] = {
-            'accuracy': accuracy_score(y_test, y_pred),
-            'precision': precision_score(y_test, y_pred, zero_division=0),
-            'recall': recall_score(y_test, y_pred, zero_division=0),
-            'f1': f1_score(y_test, y_pred, zero_division=0),
-            'roc_auc': roc_auc_score(y_test, y_proba) if y_proba is not None else None,
-            'cm': confusion_matrix(y_test, y_pred),
+            'accuracy': accuracy_score(y_test_np, y_pred),
+            'precision': precision_score(y_test_np, y_pred, zero_division=0),
+            'recall': recall_score(y_test_np, y_pred, zero_division=0),
+            'f1': f1_score(y_test_np, y_pred, zero_division=0),
+            'roc_auc': roc_auc_score(y_test_np, y_proba) if y_proba is not None else None,
+            'cm': confusion_matrix(y_test_np, y_pred),
             'y_pred': y_pred,
             'y_proba': y_proba
         }
@@ -263,27 +271,22 @@ def main():
         
         feature_cols = X_test.columns.tolist()
         
-        col1, col2 = st.columns(2)
+        st.subheader("Enter Water Parameters")
         
-        with col1:
-            st.subheader("Enter Water Parameters")
+        input_data = {}
+        for feature in feature_cols:
+            # Get min, max from test data for sensible ranges
+            min_val = float(X_test[feature].min())
+            max_val = float(X_test[feature].max())
+            mean_val = float(X_test[feature].mean())
             
-            input_data = {}
-            for i, feature in enumerate(feature_cols):
-                col = col1 if i % 2 == 0 else col2
-                
-                # Get min, max from test data for sensible ranges
-                min_val = float(X_test[feature].min())
-                max_val = float(X_test[feature].max())
-                mean_val = float(X_test[feature].mean())
-                
-                input_data[feature] = st.number_input(
-                    f"{feature}",
-                    min_value=min_val,
-                    max_value=max_val,
-                    value=mean_val,
-                    step=(max_val - min_val) / 100
-                )
+            input_data[feature] = st.slider(
+                f"{feature}",
+                min_value=min_val,
+                max_value=max_val,
+                value=mean_val,
+                step=(max_val - min_val) / 1000
+            )
         
         # Prepare input
         X_input = pd.DataFrame([input_data])
@@ -441,7 +444,7 @@ def main():
             for viz_file in sorted(viz_names):
                 with st.expander(f"📊 {viz_file.replace('.png', '').replace('_', ' ').title()}"):
                     try:
-                        st.image(visualizations[viz_file], use_column_width=True)
+                        st.image(visualizations[viz_file])
                     except Exception as e:
                         st.warning(f"Could not load {viz_file}: {e}")
         else:
