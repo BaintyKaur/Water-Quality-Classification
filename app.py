@@ -251,7 +251,7 @@ def main():
             - pH, Hardness, Solids, Chloramines
             - Sulfate, Conductivity, Organic Carbon
             - Trihalomethanes, Turbidity
-            - + Engineered features for domain relevance
+            - Engineered features for domain relevance
             """)
         
         with col2:
