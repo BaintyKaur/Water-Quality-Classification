@@ -213,6 +213,10 @@ def main():
     <div style='text-align: center; font-size: 0.9em; color: #555;'>
     <p><strong>Water Quality Classification</strong></p>
     <p>Using Random Forest, SVM & XGBoost</p>
+    <hr style='margin: 10px 0;'>
+    <p style='font-size: 0.8em;'><strong>Submitted By:</strong></p>
+    <p style='font-size: 0.8em;'>Bainty Kaur Chugh - 253316</p>
+    <p style='font-size: 0.8em;'>Asna Abbas - 253108</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -275,17 +279,20 @@ def main():
         
         input_data = {}
         for feature in feature_cols:
-            # Get min, max from test data for sensible ranges
+            # Get ranges from test data
             min_val = float(X_test[feature].min())
             max_val = float(X_test[feature].max())
             mean_val = float(X_test[feature].mean())
             
+            # Use more reasonable default values instead of mean
+            default_val = (min_val + max_val) / 2.0
+            
             input_data[feature] = st.slider(
                 f"{feature}",
-                min_value=min_val,
-                max_value=max_val,
-                value=mean_val,
-                step=(max_val - min_val) / 1000
+                min_value=float(min_val),
+                max_value=float(max_val),
+                value=float(default_val),
+                step=float((max_val - min_val) / 1000.0)
             )
         
         # Prepare input
@@ -519,6 +526,16 @@ def main():
         
         **Target**: Potability (0 = Non-Potable, 1 = Potable)
         """)
+        
+        st.markdown("---")
+        
+        st.markdown("""
+        <div style='text-align: center; font-size: 0.9em; margin-top: 20px;'>
+        <p><strong>📋 Submitted By:</strong></p>
+        <p>Bainty Kaur Chugh - 253316</p>
+        <p>Asna Abbas - 253108</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
