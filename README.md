@@ -24,8 +24,8 @@ To run locally: `streamlit run app.py`
 
 | Name | GitHub | Responsibilities |
 |------|--------|------------------|
-| Bainty Kaur | [@BaintyKaur](https://github.com/BaintyKaur) | Data Collection, Preprocessing, EDA, Feature Engineering |
-| Asna Abbas | [@asnaabbas763-cyber](https://github.com/asnaabbas763-cyber) | Model Building, Evaluation, Deployment, Explainability |
+| Bainty Kaur | [@BaintyKaur](https://github.com/BaintyKaur) | Model Building, Evaluation, Deployment, Feature Engineering |
+| Asna Abbas | [@asnaabbas763-cyber](https://github.com/asnaabbas763-cyber) | Data Collection, Preprocessing, EDA, Explainability |
 
 ---
 
