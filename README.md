@@ -14,7 +14,7 @@
 
 **[🌐 Open the Streamlit App →](https://your-app-name.streamlit.app)**
 
-*(Deploy on Streamlit Community Cloud after completing all stages)*
+> 🔁 **Replace the link above with your actual Streamlit Cloud URL after deployment.**
 
 To run locally: `streamlit run app.py`
 
@@ -46,6 +46,7 @@ Traditional water quality testing is expensive, slow, and requires laboratory eq
 | **Size** | 3,276 samples × 10 features |
 | **Target** | `Potability` — 1 (Safe), 0 (Not Safe) |
 | **Class Distribution** | ~61% Non-Potable, ~39% Potable (imbalanced) |
+| **Train-Test Split** | 80% training (with SMOTE applied), 20% test |
 
 ### Features
 
@@ -85,7 +86,6 @@ This project follows a structured 8-stage machine learning pipeline:
 - **Missing values:** Class-wise median imputation (preserves class statistics better than global median)
 - **Outliers:** IQR-based Winsorization (capping extreme values) to preserve data magnitude while reducing influence
 - **Duplicates:** Verified zero duplicate rows
-- **Train-Test Split:** 80-20 split with stratification to maintain class balance
 - **Output:** `data/processed/water_potability_cleaned.csv`
 
 ### Stage 4 — Exploratory Data Analysis
@@ -98,15 +98,16 @@ This project follows a structured 8-stage machine learning pipeline:
 
 ### Stage 5 — Feature Engineering & Selection
 - **File:** [05_feature_engineering.ipynb](05_feature_engineering.ipynb)
-- **Created 14 new engineered features:**
+- **Created 15 new engineered features:**
   - WHO safety binary flags (9 features) — flag if each parameter meets WHO safe limits
   - `total_who_compliant` — count of WHO-compliant parameters
   - Ratio features: `hardness_to_conductivity`, `chloramines_to_thm`, `organic_to_turbidity`
   - `ph_deviation` — absolute distance from neutral pH 7.0
   - Log transforms: `log_solids`, `log_conductivity`
 - **Feature selection:** Random Forest Gini importance (threshold: 0.01) + Mutual Information ranking
-- **Standardization:** StandardScaler applied to numeric features
-- **Output:** `data/processed/water_potability_engineered.csv`
+- **Train-Test Split:** 80-20 split with stratification applied here to maintain class balance
+- **Standardization:** StandardScaler applied to numeric features; saved to `models/scaler.pkl`
+- **Output:** `data/processed/water_potability_engineered.csv`, `models/selected_features.pkl`
 
 ### Stage 6 — Model Building & Hyperparameter Tuning
 - **File:** [06_model_building.ipynb](06_model_building.ipynb)
@@ -114,13 +115,12 @@ This project follows a structured 8-stage machine learning pipeline:
 
 | Model | Hyperparameters Tuned |
 |-------|----------------------|
-| **Random Forest** | n_estimators (100, 200), max_depth (5-20), min_samples_split (2-10), max_features ("sqrt", "log2") |
-| **SVM** | C (0.1-100), kernel (rbf, linear), gamma (scale, auto) |
-| **XGBoost** | n_estimators (100-500), max_depth (3-10), learning_rate (0.01-0.3), subsample (0.7-1.0) |
+| **Random Forest** | n_estimators: [100, 200, 300], max_depth: [None, 10, 20], min_samples_split: [2, 5], max_features: ["sqrt", "log2"] |
+| **SVM** | C: [0.1, 1, 10], kernel: [rbf, linear], gamma: [scale, auto] |
+| **XGBoost** | n_estimators: [100, 200], max_depth: [3, 5, 7], learning_rate: [0.05, 0.1, 0.2], subsample: [0.8, 1.0] |
 
-- **Class imbalance handled:** SMOTE applied to training data to oversample minority class
-- **Scaler saved:** StandardScaler object saved to `models/scaler.pkl` for consistent test-time scaling
-- **Models saved:** Each trained model pickled to `models/{model_name}.pkl`
+- **Class imbalance handled:** SMOTE applied to training data only (prevents data leakage)
+- **Models saved:** Each trained model pickled to `models/random_forest.pkl`, `models/svm.pkl`, `models/xgboost.pkl`
 
 ### Stage 7 — Model Evaluation & Comparison
 - **File:** [07_model_evaluation.ipynb](07_model_evaluation.ipynb)
@@ -129,9 +129,9 @@ This project follows a structured 8-stage machine learning pipeline:
   - Confusion matrices
   - ROC-AUC curves with AUC scores
   - Precision-Recall curves
-  - Cross-validation score distributions
+  - Threshold optimization (F1-optimal, cost-optimal, balanced)
 - **Best model selection:** Automatically selected based on ROC-AUC
-- **Output:** Best model name saved to `models/best_model_name.pkl`
+- **Output:** `models/best_model.pkl`, `models/best_model_name.pkl`
 
 ### Stage 8 — Model Interpretation & Explainability
 - **File:** [08_explainability.ipynb](08_explainability.ipynb)
@@ -139,35 +139,8 @@ This project follows a structured 8-stage machine learning pipeline:
   - Global explanation: Summary plots showing feature importance across entire test set
   - Local explanation: Waterfall plots for individual predictions (potable vs. non-potable samples)
   - Dependence plots: Feature interaction insights for top 3 predictive features
-  - **Actionable insights:** Derive specific environmental monitoring recommendations
+  - **Actionable insights:** Specific environmental monitoring recommendations derived
 - **Visualizations saved** to `data/processed/` for use in Streamlit app
-
----
-
-## � Dataset Overview
-
-| Property | Detail |
-|----------|--------|
-| **Name** | Water Potability Dataset |
-| **Source** | [Kaggle — Aditya Kadiwal](https://www.kaggle.com/datasets/adityakadiwal/water-potability) |
-| **Size** | 3,276 samples × 10 original features |
-| **Target** | `Potability` — 1 (Potable/Safe), 0 (Non-Potable/Unsafe) |
-| **Class Distribution** | ~61% Non-Potable, ~39% Potable (imbalanced) |
-| **Train-Test Split** | 80% training (with SMOTE applied), 20% test |
-
-### Original Features (9)
-
-| Feature | Unit | Description | WHO Safe Limit |
-|---------|------|-------------|---|
-| `ph` | — | Acidity/alkalinity | 6.5 – 8.5 |
-| `Hardness` | mg/L | Calcium/Magnesium content | < 300 |
-| `Solids` | ppm | Total dissolved solids | < 500 |
-| `Chloramines` | ppm | Disinfectant concentration | < 4 |
-| `Sulfate` | mg/L | Sulfate ions | < 250 |
-| `Conductivity` | μS/cm | Electrical conductivity | < 400 |
-| `Organic_carbon` | ppm | Organic matter | < 2 |
-| `Trihalomethanes` | μg/L | Disinfection byproducts | < 80 |
-| `Turbidity` | NTU | Water clarity | < 5 |
 
 ---
 
@@ -176,7 +149,7 @@ This project follows a structured 8-stage machine learning pipeline:
 The **Streamlit web app** provides an interactive interface with:
 - **Real-time Predictions:** Input water sample parameters via sliders
 - **Multi-model Support:** Compare predictions across Random Forest, SVM, and XGBoost
-- **WHO Compliance Checker:** Visualize which parameters meet WHO safe limits  
+- **WHO Compliance Checker:** Visualize which parameters meet WHO safe limits
 - **Prediction Confidence:** Display probabilities for both potable/non-potable classes
 - **SHAP Explainability:** Interactive plots explaining individual predictions
 - **Evaluation Metrics:** Confusion matrices, ROC curves, and performance dashboards
@@ -184,8 +157,6 @@ The **Streamlit web app** provides an interactive interface with:
 *(Screenshots will be added after deployment)*
 
 ---
-
-## 🗂️ Repository Structure
 
 ## 🗂️ Repository Structure
 
@@ -199,7 +170,7 @@ Water-Quality-Classification/
 ├── 06_model_building.ipynb              ← Stage 6: Model training & tuning
 ├── 07_model_evaluation.ipynb            ← Stage 7: Model evaluation & comparison
 ├── 08_explainability.ipynb              ← Stage 8: SHAP analysis
-├── app.py                               ← Streamlit web application
+├── app.py                               ← Streamlit web application (run from root)
 ├── requirements.txt                     ← Python dependencies
 ├── README.md                            ← This file
 ├── GIT_WORKFLOW.md                      ← Team collaboration guide
@@ -207,14 +178,14 @@ Water-Quality-Classification/
 │
 ├── data/
 │   ├── raw/
-│   │   └── water_potability.csv         ← Original dataset from Kaggle
+│   │   └── water_potability.csv         ← Original dataset from Kaggle (download manually)
 │   └── processed/
 │       ├── water_potability_cleaned.csv         ← After preprocessing (Stage 3)
-│       ├── water_potability_engineered.csv     ← After feature engineering (Stage 5)
-│       ├── X_train.csv, X_train_scaled.csv     ← Training features (scaled)
-│       ├── X_test.csv, X_test_scaled.csv       ← Test features (scaled)
-│       ├── y_train.csv, y_test.csv             ← Training/test labels
-│       └── water_potability_raw_copy.csv       ← Backup copy
+│       ├── water_potability_engineered.csv      ← After feature engineering (Stage 5)
+│       ├── X_train.csv, X_train_scaled.csv      ← Training features (scaled)
+│       ├── X_test.csv, X_test_scaled.csv        ← Test features (scaled)
+│       ├── y_train.csv, y_test.csv              ← Training/test labels
+│       └── water_potability_raw_copy.csv        ← Backup copy
 │
 ├── models/
 │   ├── random_forest.pkl                ← Trained Random Forest model
@@ -223,7 +194,7 @@ Water-Quality-Classification/
 │   ├── best_model.pkl                   ← Best performing model
 │   ├── best_model_name.pkl              ← Name of best model
 │   ├── scaler.pkl                       ← StandardScaler (fit on train data)
-│   └── selected_features.pkl            ← Selected feature names
+│   └── selected_features.pkl            ← Selected feature names list
 │
 ├── .venv/                               ← Python virtual environment (gitignored)
 └── .git/                                ← Git repository metadata
@@ -233,49 +204,58 @@ Water-Quality-Classification/
 
 ## 🚀 Quick Start
 
-### Option 1: Run Streamlit App (Fastest)
+> ⚠️ **Important:** The Streamlit app loads pre-trained models and processed data from disk.
+> You **must run notebooks 01–07 in order** before launching `app.py`, otherwise the app will fail to load models and display errors.
+
+### Step 0 — Download the Dataset
+
+1. Go to [Kaggle — Water Potability Dataset](https://www.kaggle.com/datasets/adityakadiwal/water-potability)
+2. Sign in with a free Kaggle account (required to download)
+3. Click **Download** and extract the ZIP
+4. Rename the file to `water_potability.csv` if needed
+5. Place it at: `data/raw/water_potability.csv`
+
+### Option 1: Run the Full Pipeline (Recommended for First-Time Setup)
 
 ```bash
-# 1. Navigate to project directory
-cd Water-Quality-Classification
+# 1. Clone the repository
+git clone https://github.com/YOUR_ORG/water-quality-project.git
+cd water-quality-project
 
-# 2. Create virtual environment
+# 2. Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate              # Windows: venv\Scripts\activate
 
 # 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Download dataset (if not already present)
-# Visit: https://www.kaggle.com/datasets/adityakadiwal/water-potability
-# Save to: data/raw/water_potability.csv
+# 4. Place the dataset (see Step 0 above)
+#    → data/raw/water_potability.csv
 
-# 5. Run Streamlit app
+# 5. Run notebooks IN ORDER (01 → 07)
+jupyter notebook
+# Open and run each notebook: 01 → 02 → 03 → 04 → 05 → 06 → 07 → 08
+
+# 6. Launch the Streamlit app
 streamlit run app.py
 ```
 
 The app will open at `http://localhost:8501`
 
----
-
-### Option 2: Run the Notebooks (Full Workflow)
+### Option 2: Run Streamlit App Only (If Models Are Already Trained)
 
 ```bash
-# 1–3. Same setup as above, then:
-
-# 4. Start Jupyter notebook server
-jupyter notebook
-
-# 5. Open and run notebooks in order (01 → 08)
-# Each notebook builds on the previous outputs
+# If models/ and data/processed/ directories are already populated:
+streamlit run app.py
 ```
 
 ### Option 3: Deploy to Streamlit Cloud (Production)
 
-1. **Push code to GitHub** (if not already done)
+1. **Push code to GitHub** (ensure `models/` and `data/processed/` are committed or use Git LFS)
 2. Go to [Streamlit Cloud](https://streamlit.io/cloud)
-3. Click **"New app"** → Select your repository, branch, and `app.py`
-4. Deploy! Your app will have a URL: `https://your-username-projectname.streamlit.app`
+3. Click **"New app"** → Select your repository, branch, and set main file to `app.py`
+4. Click **Deploy** — your app will be live at: `https://your-username-projectname.streamlit.app`
+5. Update the Live Demo link at the top of this README with the real URL
 
 ---
 
@@ -283,7 +263,7 @@ jupyter notebook
 
 - **Python:** 3.10 or higher
 - **Git:** For version control
-- **Kaggle Account:** To download the dataset
+- **Kaggle Account:** To download the dataset (free)
 
 **Key Python Packages:**
 - `pandas`, `numpy`, `scipy` — Data manipulation & statistics
@@ -313,11 +293,11 @@ See [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for detailed instructions on:
 # Each team member creates their own feature branch
 git checkout -b feature/stage-N-description
 
-# Example:
+# Examples:
 git checkout -b feature/stage-4-eda-analysis
 git checkout -b feature/stage-6-model-training
 
-# After finishing work, create a PR for review before merging to main
+# After finishing, create a PR for review before merging to main
 ```
 
 **Commit Message Convention:**
@@ -335,21 +315,21 @@ git commit -m "feat(stage-N): Brief description of changes
 
 After running all stages:
 
-1. **Best Model Performance:**
-   - Compare evaluation metrics from `07_model_evaluation.ipynb`
-   - ROC-AUC, F1-score, and Precision-Recall curves
+1. **Best Model:** Random Forest (selected by ROC-AUC)
+   - ROC-AUC, F1-score, Precision-Recall curves in `07_model_evaluation.ipynb`
 
-2. **Feature Importance:**
-   - Top predictive features from Random Forest feature importance
-   - SHAP summary plots from `08_explainability.ipynb`
+2. **Top Predictive Features (SHAP-verified):**
+   - `Sulfate` — most critical for potability determination
+   - `ph_deviation` — distance from neutral pH (7.0) is a key signal
+   - `Chloramines` — disinfection quality strongly influences prediction
 
 3. **Class Imbalance Impact:**
    - SMOTE improved recall for minority (potable) class
-   - F1-score more reliable metric than accuracy
+   - F1-score is a more reliable metric than accuracy for this dataset
 
 4. **WHO Compliance Insights:**
    - Engineered WHO-compliance flags are strong predictors
-   - pH and sulfate levels are critical quality indicators
+   - `total_who_compliant` score correlates positively with potability
 
 ---
 
@@ -360,7 +340,7 @@ The project uses **SHAP (SHapley Additive exPlanations)** to interpret model pre
 - **Global Explanations:** Which features matter most across all predictions
 - **Local Explanations:** Why a specific water sample was predicted potable/non-potable
 - **Dependence Plots:** How feature values affect predictions
-- **Waterfall Plots:** Breakdown of prediction components
+- **Waterfall Plots:** Breakdown of prediction components per sample
 
 All SHAP visualizations are generated in [08_explainability.ipynb](08_explainability.ipynb) and displayed in the Streamlit app.
 
@@ -369,16 +349,22 @@ All SHAP visualizations are generated in [08_explainability.ipynb](08_explainabi
 ## 🐛 Troubleshooting
 
 ### Issue: Models not loading in Streamlit app
-**Solution:** Ensure all `.pkl` files exist in the `models/` directory. Run notebooks 01–07 first.
+**Solution:** Run notebooks 01–07 in order first. All `.pkl` files must exist in `models/` before launching the app. Required files: `random_forest.pkl`, `svm.pkl`, `xgboost.pkl`, `best_model.pkl`, `best_model_name.pkl`, `scaler.pkl`, `selected_features.pkl`
 
-### Issue: Missing data files
-**Solution:** Download `water_potability.csv` from [Kaggle](https://www.kaggle.com/datasets/adityakadiwal/water-potability) and place in `data/raw/`
+### Issue: `FileNotFoundError` for test data
+**Solution:** Run notebooks 03–05 to regenerate `data/processed/` files. Required: `X_test.csv`, `X_test_scaled.csv`, `y_test.csv`
 
-### Issue: SMOTE or Scaler errors
-**Solution:** Ensure `imbalanced-learn` is installed: `pip install imbalanced-learn`
+### Issue: Missing `water_potability.csv`
+**Solution:** Download from [Kaggle](https://www.kaggle.com/datasets/adityakadiwal/water-potability) and place at `data/raw/water_potability.csv`. A Kaggle account is required to download.
+
+### Issue: SMOTE or imbalanced-learn errors
+**Solution:** `pip install imbalanced-learn==0.12.3`
 
 ### Issue: Streamlit port already in use
-**Solution:** Use a different port: `streamlit run app.py --server.port 8502`
+**Solution:** `streamlit run app.py --server.port 8502`
+
+### Issue: SHAP errors on Stage 8
+**Solution:** `pip install shap==0.45.1` — ensure version matches `requirements.txt`
 
 ---
 
@@ -442,5 +428,5 @@ This project is for **educational and research purposes**. The dataset is provid
 
 ---
 
-**Last Updated:** April 2026  
+**Last Updated:** May 2026  
 **Project Status:** ✅ Active Development
