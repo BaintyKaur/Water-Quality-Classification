@@ -12,9 +12,7 @@
 
 ## 🔗 Live Demo
 
-**[🌐 Open the Streamlit App →](https://your-app-name.streamlit.app)**
-
-> 🔁 **Replace the link above with your actual Streamlit Cloud URL after deployment.**
+**[🌐 Open the Streamlit App →](https://water-quality-classification-using-ml-2tas2pjwcqlx9elqmwpuck.streamlit.app/)**
 
 To run locally: `streamlit run app.py`
 
